@@ -62,7 +62,7 @@ export default {
       labels: '',
       allData: '',
       plotData: [],
-      selectedColumn: 'Weight',
+      selectedColumn: 'Position',
       startYear: new Date(2004, 1, 1),
       endYear: new Date(2008, 1, 1),
       leafNode: 1,
@@ -70,9 +70,10 @@ export default {
       currentOption: '',
       allForks: [],
       showLoading: true,
-      drawLoess: true,
+      drawLoess: false,
       excludeZero: false,
-      jitterThem: true
+      jitterThem: false,
+      numNumericalMapStr: ''
     }
   },
   mounted() {
@@ -89,13 +90,14 @@ export default {
   methods: {
     drawPlot: function (scatterData, loessData) {
       let self = this
+      console.log(scatterData)
       self.currentOption = {
         title: {
           text: 'sum_7yr_GP vs ' + self.selectedColumn + ' (leaf: ' + (self.leafNode === -1 ? 'all' : self.leafNode) + ')',
           left: 'center'
         },
         xAxis: {
-          name: self.selectedColumn,
+          name: self.selectedColumn + (self.numNumericalMapStr ? (' (' + self.numNumericalMapStr + ')') : ''),
           nameLocation: 'middle',
           nameGap: 20,
           splitLine: {
@@ -144,6 +146,24 @@ export default {
       }
       this.myChart.setOption(self.currentOption)
     },
+    handleNonNumeric: function (nonNumArray) {
+      let symbols = []
+      for (let s of nonNumArray) {
+        if (symbols.indexOf(s) >= 0) {
+          continue
+        }
+        symbols.push(s)
+      }
+      let indexdArray = nonNumArray.map(item => {
+        return symbols.indexOf(item)
+      })
+      let numMapArray = ''
+      symbols.forEach((item, index) => {
+        numMapArray += index.toString() + '-' + item + ' '
+      })
+      this.numNumericalMapStr = numMapArray
+      return indexdArray
+    },
     updateGraph: function () {
       let self = this
       let start = this.startYear.getFullYear()
@@ -156,12 +176,19 @@ export default {
       if (self.leafNode !== -1) {
         cleanData = cleanData.filter(item => parseInt(item[INDEX_LEAF]) === self.leafNode)
       }
-      cleanData = cleanData.map(item => [parseInt(item[columnIndex]), parseInt(item[INDEX_Y])])
-
+      cleanData = cleanData.map(item => [item[columnIndex], parseInt(item[INDEX_Y])])
       if (self.excludeZero) {
         cleanData = cleanData.filter(item => {
           return item[1] !== 0
         })
+      }
+      if (!parseInt(cleanData[0][0])) {
+        let newSymboledData = self.handleNonNumeric(cleanData.map(item => item[0]))
+        cleanData = cleanData.map((item, i) => {
+          return [newSymboledData[i], item[1]]
+        })
+      } else {
+        self.numNumericalMapStr = ''
       }
       let loessData = []
       if (self.drawLoess) {
