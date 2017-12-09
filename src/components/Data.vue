@@ -85,7 +85,7 @@ export default {
     setTimeout(function () {
       self.updateGraph()
       self.showLoading = false
-    }, 2000)
+    }, 1000)
   },
   methods: {
     drawPlot: function (scatterData, loessData) {
